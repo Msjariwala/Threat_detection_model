@@ -44,22 +44,52 @@ fps_timer = time.time()
 
 print("[INIT] Smart Doorbell running. Press 'q' to quit.")
 
+frame_count = 0
+
+last_weapon = False   
+person_boxes = []     
 # =============================================
 # Main loop
 # =============================================
 
 while True:
+
+    frame_count += 1
+
+    
     ret, frame = cap.read()
 
     if not ret:
         break
 
     # --- Object Detection ---
-    det_out = detector.detect(frame)
-    raw_weapon = det_out["weapon_detected"]
-    person_boxes = det_out["persons"]
+    if frame_count % 5 == 0:
+        small_frame = cv2.resize(frame, (640, 360))
+        det_out = detector.detect(small_frame)
 
-    if raw_weapon:
+        last_weapon = det_out["weapon_detected"]
+        person_boxes_small = det_out["persons"]
+
+        # --- Scale boxes back ---
+        h, w = frame.shape[:2]
+        scale_x = w / 640
+        scale_y = h / 360
+
+        person_boxes = []
+        for p in person_boxes_small:
+            x1, y1, x2, y2 = p["bbox"]
+            person_boxes.append({
+                "bbox": (
+                    int(x1 * scale_x),
+                    int(y1 * scale_y),
+                    int(x2 * scale_x),
+                    int(y2 * scale_y)
+                ),
+                "confidence": p["confidence"]
+            })
+            
+    # --- Weapon smoothing ---
+    if last_weapon:
         weapon_counter += 1
     else:
         weapon_counter = max(0, weapon_counter - 1)
