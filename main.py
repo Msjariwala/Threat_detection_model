@@ -7,11 +7,15 @@ from core.threat import ThreatScoreEngine
 from core.person_tracker import PersonTracker
 from event_logger import EventLogger
 from utils.telegram_alert import TelegramAlert
+from core.detector import ObjectDetector
 
 
 # =============================================
 # Initialize components
 # =============================================
+
+print("[INIT] weapon detection")
+detector = ObjectDetector("yolov8n.pt")
 
 print("[INIT] Loading known faces...")
 recognizer = FaceRecognizer(distance_threshold=0.5)
@@ -31,6 +35,8 @@ threat_engine = ThreatScoreEngine()
 
 cap = cv2.VideoCapture(0)
 
+weapon_counter = 0
+
 # FPS tracking
 fps_counter = 0
 fps_value = 0
@@ -44,8 +50,22 @@ print("[INIT] Smart Doorbell running. Press 'q' to quit.")
 
 while True:
     ret, frame = cap.read()
+
     if not ret:
         break
+
+    # --- Object Detection ---
+    det_out = detector.detect(frame)
+    raw_weapon = det_out["weapon_detected"]
+    person_boxes = det_out["persons"]
+
+    if raw_weapon:
+        weapon_counter += 1
+    else:
+        weapon_counter = max(0, weapon_counter - 1)
+
+    weapon_detected = weapon_counter > 5
+
 
     # --- Submit frame for background recognition ---
     recognizer.submit_frame(frame)
@@ -81,9 +101,20 @@ while True:
         is_nighttime=False,
         audio_status="NORMAL",
         camera_status="NORMAL",
-        weapon_detected=False
+        weapon_detected=weapon_detected
     )
 
+    # --- Draw detected persons (YOLO) ---
+    for p in person_boxes:
+        x1, y1, x2, y2 = p["bbox"]
+        conf = p["confidence"]
+
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 0), 2)
+        cv2.putText(frame, f"Person {conf:.2f}",
+                    (x1, y1 - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                (255, 255, 0), 2)
+        
     # --- Draw bounding boxes for ALL detected faces ---
     for face in face_results:
         box = face["box"]
@@ -142,6 +173,10 @@ while True:
                 f"FPS: {fps_value:.1f}",
                 (20, 75),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 200, 0), 2)
+    
+    if weapon_detected:
+        cv2.putText(frame, "WEAPON DETECTED!", (20, 110),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 3)
 
     cv2.imshow("Smart Doorbell", frame)
 

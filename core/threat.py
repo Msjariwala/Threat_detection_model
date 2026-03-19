@@ -44,9 +44,28 @@ class ThreatScoreEngine:
         # -----------------------------
         # 🔥 WEAPON OVERRIDE
         # -----------------------------
+        # if weapon_detected:
+        #     score = WEAPON_BASE_SCORE
+        #     triggered_rules.append("Weapon detected → base score set to 6")
+
+        #     if is_nighttime:
+        #         score += 2
+        #         triggered_rules.append("Weapon + Night bonus +2")
+
+        #     if face_status == "COVERED":
+        #         score += 2
+        #         triggered_rules.append("Weapon + Covered face bonus +2")
+
+        #     level = max(WEAPON_MIN_LEVEL, self._determine_level(score))
+
+        #     return self._build_result(score, level, triggered_rules)
+
+        # -----------------------------
+        # 🔪 Weapon Contribution (Hybrid)
+        # -----------------------------
         if weapon_detected:
-            score = WEAPON_BASE_SCORE
-            triggered_rules.append("Weapon detected → base score set to 6")
+            score += WEAPON_BASE_SCORE
+            triggered_rules.append(f"Weapon detected → +{WEAPON_BASE_SCORE}")
 
             if is_nighttime:
                 score += 2
@@ -55,10 +74,6 @@ class ThreatScoreEngine:
             if face_status == "COVERED":
                 score += 2
                 triggered_rules.append("Weapon + Covered face bonus +2")
-
-            level = max(WEAPON_MIN_LEVEL, self._determine_level(score))
-
-            return self._build_result(score, level, triggered_rules)
 
         # -----------------------------
         # 🧍 Face Scoring
@@ -110,6 +125,10 @@ class ThreatScoreEngine:
         # Determine Level
         # -----------------------------
         level = self._determine_level(score)
+
+        # Enforce minimum level if weapon detected
+        if weapon_detected:
+            level = max(level, WEAPON_MIN_LEVEL)
 
         return self._build_result(score, level, triggered_rules)
 
