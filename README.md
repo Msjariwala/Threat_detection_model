@@ -1,6 +1,6 @@
-# 🔔 AI-Powered Smart Doorbell System
+# 🔔 AI-Powered Threat Detection Model
 
-> 🚀 A real-time intelligent surveillance system that detects threats using **Face Recognition + Weapon Detection + Behavioral Analysis**
+> 🚀 A real-time intelligent surveillance Model that detects threats using **Face Recognition + Weapon Detection + Behavioral Analysis**
 
 ---
 
